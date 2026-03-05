@@ -61,13 +61,16 @@ int main(const int argc, char *argv[]) {
     const char *target_directory = NULL;
     int flag_all = 0;
     int flag_reverse = 0;
+    int flag_nosort = 0;
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--help") == 0) {
             printf("Usage: ls [OPTION]... [FILE]...\n");
             printf("\nOptions:\n");
             printf("  -a, --all                  do not ignore entries starting with .\n");
+            printf("  -f                         same as -a -U\n");
             printf("  -r, --reverse              reverse order while sorting\n");
+            printf("  -U                         do not sort; list entries in directory order\n");
             printf("      --help     display this help and exit\n");
             printf("      --version  output version information and exit\n");
 
@@ -92,8 +95,15 @@ int main(const int argc, char *argv[]) {
                     case 'a':
                         flag_all = 1;
                         break;
+                    case 'f':
+                        flag_all = 1;
+                        flag_nosort = 1;
+                        break;
                     case 'r':
                         flag_reverse = 1;
+                        break;
+                    case 'U':
+                        flag_nosort = 1;
                         break;
                     default:
                         fprintf(stderr, "windows-ls: invalid option -- '%c'\n", argv[i][j]);
@@ -170,12 +180,14 @@ int main(const int argc, char *argv[]) {
     }
     closedir(directory);
 
-    qsort(entries, count, sizeof(char *), cmp_entries);
-    if (flag_reverse) {
-        for (int i = 0; i < count / 2; i++) {
-            char *tmp = entries[i];
-            entries[i] = entries[count - i - 1];
-            entries[count - i - 1] = tmp;
+    if (!flag_nosort) {
+        qsort(entries, count, sizeof(char *), cmp_entries);
+        if (flag_reverse) {
+            for (int i = 0; i < count / 2; i++) {
+                char *tmp = entries[i];
+                entries[i] = entries[count - i - 1];
+                entries[count - i - 1] = tmp;
+            }
         }
     }
 
