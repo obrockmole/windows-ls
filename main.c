@@ -20,23 +20,11 @@ static int get_terminal_width() {
     return 120; // Default terminal width
 }
 
-static void print_columns(char **entries, const int count) {
+static void print_columns(char **entries, const int count, const int col_width, const int num_cols) {
     if (count == 0) {
         return;
     }
 
-    const int term_width = get_terminal_width();
-
-    int max_entry_len = 0;
-    for (int i = 0; i < count; i++) {
-        int entry_len = (int)strlen(entries[i]);
-        if (entry_len > max_entry_len) {
-            max_entry_len = entry_len;
-        }
-    }
-
-    int col_width = max_entry_len + 2;
-    int num_cols = max(term_width / col_width, 1);
     int num_rows = (count + num_cols - 1) / num_cols;
 
     for (int r = 0; r < num_rows; r++) {
@@ -63,6 +51,8 @@ int main(const int argc, char *argv[]) {
     int flag_reverse = 0;
     int flag_nosort = 0;
 
+    int term_width = get_terminal_width();
+
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--help") == 0) {
             printf("Usage: ls [OPTION]... [FILE]...\n");
@@ -71,6 +61,8 @@ int main(const int argc, char *argv[]) {
             printf("  -f                         same as -a -U\n");
             printf("  -r, --reverse              reverse order while sorting\n");
             printf("  -U                         do not sort; list entries in directory order\n");
+            printf("  -w                         set output width. 0 means no limit\n");
+            printf("  -1                         list one file per line\n");
             printf("      --help     display this help and exit\n");
             printf("      --version  output version information and exit\n");
 
@@ -104,6 +96,19 @@ int main(const int argc, char *argv[]) {
                         break;
                     case 'U':
                         flag_nosort = 1;
+                        break;
+                    case 'w':
+                        if (argv[i][j + 1] == '=') {
+                            fprintf(stderr, "windows-ls: invalid line width: '='\n");
+                            return 1;
+                        }
+
+                        term_width = strtol(argv[i + 1], NULL, 10);
+                        j = strlen(argv[i]) - 1;
+                        i++;
+                        break;
+                    case '1':
+                        term_width = 1;
                         break;
                     default:
                         fprintf(stderr, "windows-ls: invalid option -- '%c'\n", argv[i][j]);
@@ -141,6 +146,7 @@ int main(const int argc, char *argv[]) {
         return 2;
     }
 
+    int max_entry_len = 0;
     struct dirent *directory_entry;
     while ((directory_entry = readdir(directory)) != NULL) {
         if (!flag_all && directory_entry->d_name[0] == '.') {
@@ -165,7 +171,7 @@ int main(const int argc, char *argv[]) {
             entries = new_entries;
         }
 
-        entries[count] = malloc(sizeof(char) + strlen(directory_entry->d_name) + 1);
+        entries[count] = malloc(sizeof(char) * strlen(directory_entry->d_name) + 1);
         if (!entries[count]) {
             for (int i = 0; i < count; i++) {
                 free(entries[i]);
@@ -175,6 +181,10 @@ int main(const int argc, char *argv[]) {
             return 2;
         }
 
+        int entry_len = (int)strlen(directory_entry->d_name);
+        if (entry_len > max_entry_len) {
+            max_entry_len = entry_len;
+        }
         strcpy(entries[count], directory_entry->d_name);
         count++;
     }
@@ -191,7 +201,9 @@ int main(const int argc, char *argv[]) {
         }
     }
 
-    print_columns(entries, count);
+    int col_width = max_entry_len + 2;
+    int num_cols = max(term_width / col_width, 1);
+    print_columns(entries, count, col_width, num_cols);
 
     for (int i = 0; i < count; i++) {
         free(entries[i]);
