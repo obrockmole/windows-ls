@@ -55,7 +55,7 @@ int main(const int argc, char *argv[]) {
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--help") == 0) {
-            printf("Usage: ls [OPTION]... [FILE]...\n");
+            printf("Usage: ls [OPTION]... [DIRECTORY]...\n");
             printf("\nOptions:\n");
             printf("  -a, --all                  do not ignore entries starting with .\n");
             printf("  -f                         same as -a -U\n");
@@ -63,8 +63,8 @@ int main(const int argc, char *argv[]) {
             printf("  -U                         do not sort; list entries in directory order\n");
             printf("  -w                         set output width. 0 means no limit\n");
             printf("  -1                         list one file per line\n");
-            printf("      --help     display this help and exit\n");
-            printf("      --version  output version information and exit\n");
+            printf("      --help     display this help message and exits\n");
+            printf("      --version  output version information and exits\n");
 
             return 0;
         }
@@ -74,6 +74,7 @@ int main(const int argc, char *argv[]) {
             printf("License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.");
             printf("This is free software: you are free to change and redistribute it.");
             printf("There is NO WARRANTY, to the extent permitted by law.\n");
+
             return 0;
         }
 
@@ -87,16 +88,20 @@ int main(const int argc, char *argv[]) {
                     case 'a':
                         flag_all = 1;
                         break;
+
                     case 'f':
                         flag_all = 1;
                         flag_nosort = 1;
                         break;
+
                     case 'r':
                         flag_reverse = 1;
                         break;
+
                     case 'U':
                         flag_nosort = 1;
                         break;
+
                     case 'w':
                         if (argv[i][j + 1] == '=') {
                             fprintf(stderr, "windows-ls: invalid line width: '='\n");
@@ -107,9 +112,11 @@ int main(const int argc, char *argv[]) {
                         j = strlen(argv[i]) - 1;
                         i++;
                         break;
+
                     case '1':
                         term_width = 1;
                         break;
+
                     default:
                         fprintf(stderr, "windows-ls: invalid option -- '%c'\n", argv[i][j]);
                         fprintf(stderr, "Try 'ls --help' for more information.\n");
@@ -177,6 +184,7 @@ int main(const int argc, char *argv[]) {
                 free(entries[i]);
             }
             free(entries);
+
             closedir(directory);
             return 2;
         }
@@ -202,7 +210,10 @@ int main(const int argc, char *argv[]) {
     }
 
     int col_width = max_entry_len + 2;
-    int num_cols = max(term_width / col_width, 1);
+    int num_cols = term_width / col_width;
+    if (num_cols == 0) {
+        num_cols = 1;
+    }
     print_columns(entries, count, col_width, num_cols);
 
     for (int i = 0; i < count; i++) {
