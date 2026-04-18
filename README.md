@@ -1,4 +1,4 @@
-# Windows LS
+# Windows ls
 
 A simple implementation of the Unix `ls` command for Windows.
 
@@ -15,6 +15,13 @@ A simple implementation of the Unix `ls` command for Windows.
 - `--version`: Display version information.
 
 ## Installation
+
+### Download
+
+1. Download the latest `ls.exe` file from [releases](https://github.com/obrockmole/windows-ls/releases).
+2. Place `ls.exe` in a directory of your choice. See "Adding to Path" below.
+
+### Build From Source
 
 1.  **Clone the repository:**
     ```bash
@@ -44,7 +51,7 @@ After the build is complete, you will find `ls.exe` in the `build/Debug` directo
 
 To use `ls` from any location, it needs to be added to the system's PATH environment variable.
 
-1. Find the full path to the directory where `ls.exe` was built (e.g., `C:\Users\User\Downloads\windows-ls\build\Debug`).
+1. Find the full path to the directory where `ls.exe` was built or downloaded (e.g., `C:\Users\User\Downloads\windows-ls\build\Debug`).
 2. Some find it better to move `ls.exe` to a more permanent location, such as `C:\Program Files\windows-ls` or `C:\Users\User\windows-ls`, for a more central location
 3. Search for "Environment Variables" in Windows search and find "Edit the system environment variables".
 4. It should open the "System Properties" window on the "Advanced" tab. Click on the "Environment Variables..." button at the bottom right.
