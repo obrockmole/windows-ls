@@ -6,6 +6,7 @@ A simple implementation of the Unix `ls` command for Windows.
 
 - List files in the current directory or a specified directory.
 - `-a`, `--all`: Do not ignore entries starting with `.`.
+- `-A`, `--almost-all`: Do not list implied `.` and `..`.
 - `-f`: Same as `-a -U` (show all and do not sort).
 - `-r`, `--reverse`: Reverse the order of the sort.
 - `-U`: Do not sort; list entries in the order they appear in the directory.
@@ -68,6 +69,7 @@ Run the executable from the command line. Usage is the same as the Unix `ls` com
 ls [OPTION]... [DIRECTORY]...
 Options:
   -a, --all                  do not ignore entries starting with .
+  -A, --almost-all           do not list implied . and ..
   -f                         same as -a -U
   -r, --reverse              reverse order while sorting
   -U                         do not sort; list entries in directory order

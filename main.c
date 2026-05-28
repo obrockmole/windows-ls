@@ -48,6 +48,7 @@ static void print_columns(char **entries, const int count, const int col_width, 
 int main(const int argc, char *argv[]) {
     const char *target_directory = NULL;
     int flag_all = 0;
+    int flag_almost_all = 0;
     int flag_reverse = 0;
     int flag_nosort = 0;
 
@@ -58,6 +59,7 @@ int main(const int argc, char *argv[]) {
             printf("Usage: ls [OPTION]... [DIRECTORY]...\n");
             printf("\nOptions:\n");
             printf("  -a, --all                  do not ignore entries starting with .\n");
+            printf("  -A, --almost-all           do not list implied . and ..\n");
             printf("  -f                         same as -a -U\n");
             printf("  -r, --reverse              reverse order while sorting\n");
             printf("  -U                         do not sort; list entries in directory order\n");
@@ -80,6 +82,8 @@ int main(const int argc, char *argv[]) {
 
         if (strcmp(argv[i], "--all") == 0) {
             flag_all = 1;
+        } else if (strcmp(argv[i], "--almost-all") == 0) {
+            flag_almost_all = 1;
         } else if (strcmp(argv[i], "--reverse") == 0) {
             flag_reverse = 1;
         } else if (argv[i][0] == '-') {
@@ -87,6 +91,10 @@ int main(const int argc, char *argv[]) {
                 switch (argv[i][j]) {
                     case 'a':
                         flag_all = 1;
+                        break;
+
+                    case 'A':
+                        flag_almost_all = 1;
                         break;
 
                     case 'f':
@@ -156,7 +164,11 @@ int main(const int argc, char *argv[]) {
     int max_entry_len = 0;
     struct dirent *directory_entry;
     while ((directory_entry = readdir(directory)) != NULL) {
-        if (!flag_all && directory_entry->d_name[0] == '.') {
+        if (flag_almost_all) {
+            if (strcmp(directory_entry->d_name, ".") == 0 || strcmp(directory_entry->d_name, "..") == 0) {
+                continue;
+            }
+        } else if (!flag_all && directory_entry->d_name[0] == '.') {
             continue;
         }
 
