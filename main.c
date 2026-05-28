@@ -4,6 +4,15 @@
 #include <dirent.h>
 #include <windows.h>
 
+typedef struct {
+    bool all;
+    bool almost_all;
+    bool reverse;
+    bool nosort;
+    int term_width;
+    const char *target_directory;
+} LsOptions;
+
 static int cmp_entries(const void *a, const void *b) {
     const char *string_a = *(const char **)a;
     const char *string_b = *(const char **)b;
@@ -45,100 +54,126 @@ static void print_columns(char **entries, const int count, const int col_width, 
     }
 }
 
-int main(const int argc, char *argv[]) {
-    const char *target_directory = NULL;
-    int flag_all = 0;
-    int flag_almost_all = 0;
-    int flag_reverse = 0;
-    int flag_nosort = 0;
+static void print_help() {
+    printf("Usage: ls [OPTION]... [DIRECTORY]...\n");
+    printf("\nOptions:\n");
+    printf("  -a, --all                  do not ignore entries starting with .\n");
+    printf("  -A, --almost-all           do not list implied . and ..\n");
+    printf("  -f                         do not sort, enable -aU\n");
+    printf("  -r, --reverse              reverse order while sorting\n");
+    printf("  -U                         do not sort; list entries in directory order\n");
+    printf("  -w, --width=COLS           set output width to COLS.  0 means no limit\n");
+    printf("  -1                         list one file per line\n");
+    printf("      --help     display this help and exit\n");
+    printf("      --version  output version information and exit\n");
+}
 
-    int term_width = get_terminal_width();
+static void print_version() {
+    printf("ls (windows-ls) 1.1\n");
+    printf("License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\n");
+    printf("This is free software: you are free to change and redistribute it.\n");
+    printf("There is NO WARRANTY, to the extent permitted by law.\n");
+}
 
+static int parse_arguments(int argc, char *argv[], LsOptions *ls_options) {
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--help") == 0) {
-            printf("Usage: ls [OPTION]... [DIRECTORY]...\n");
-            printf("\nOptions:\n");
-            printf("  -a, --all                  do not ignore entries starting with .\n");
-            printf("  -A, --almost-all           do not list implied . and ..\n");
-            printf("  -f                         same as -a -U\n");
-            printf("  -r, --reverse              reverse order while sorting\n");
-            printf("  -U                         do not sort; list entries in directory order\n");
-            printf("  -w                         set output width. 0 means no limit\n");
-            printf("  -1                         list one file per line\n");
-            printf("      --help     display this help message and exits\n");
-            printf("      --version  output version information and exits\n");
-
-            return 0;
+            print_help();
+            return 1;
         }
 
         if (strcmp(argv[i], "--version") == 0) {
-            printf("ls (windows-ls) 0.1\n");
-            printf("License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.");
-            printf("This is free software: you are free to change and redistribute it.");
-            printf("There is NO WARRANTY, to the extent permitted by law.\n");
-
-            return 0;
+            print_version();
+            return 1;
         }
 
         if (strcmp(argv[i], "--all") == 0) {
-            flag_all = 1;
+            ls_options->all = true;
         } else if (strcmp(argv[i], "--almost-all") == 0) {
-            flag_almost_all = 1;
+            ls_options->almost_all = true;
         } else if (strcmp(argv[i], "--reverse") == 0) {
-            flag_reverse = 1;
+            ls_options->reverse = true;
+        } else if (strncmp(argv[i], "--width=", 8) == 0) {
+            ls_options->term_width = strtol(argv[i] + 8, NULL, 10);
+        } else if (strcmp(argv[i], "--width") == 0) {
+            if (i + 1 < argc) {
+                ls_options->term_width = strtol(argv[i + 1], NULL, 10);
+                i++;
+            } else {
+                fprintf(stderr, "windows-ls: option '--width' requires an argument\n");
+                return -1;
+            }
         } else if (argv[i][0] == '-') {
-            for (int j = 1; argv[i][j] != '\0'; j++) {
+            bool skip_rest = false;
+            for (int j = 1; argv[i][j] != '\0' && !skip_rest; j++) {
                 switch (argv[i][j]) {
                     case 'a':
-                        flag_all = 1;
+                        ls_options->all = true;
                         break;
-
                     case 'A':
-                        flag_almost_all = 1;
+                        ls_options->almost_all = true;
                         break;
-
                     case 'f':
-                        flag_all = 1;
-                        flag_nosort = 1;
+                        ls_options->all = true;
+                        ls_options->nosort = true;
                         break;
-
                     case 'r':
-                        flag_reverse = 1;
+                        ls_options->reverse = true;
                         break;
-
                     case 'U':
-                        flag_nosort = 1;
+                        ls_options->nosort = true;
                         break;
-
                     case 'w':
-                        if (argv[i][j + 1] == '=') {
-                            fprintf(stderr, "windows-ls: invalid line width: '='\n");
-                            return 1;
+                        if (argv[i][j + 1] != '\0') {
+                            char *value = &argv[i][j + 1];
+                            if (value[0] == '=') {
+                                fprintf(stderr, "windows-ls: invalid line width: '%s'\n", value);
+                                return -1;
+                            }
+                            ls_options->term_width = strtol(value, NULL, 10);
+                            skip_rest = true;
+                        } else {
+                            if (i + 1 < argc) {
+                                ls_options->term_width = strtol(argv[i + 1], NULL, 10);
+                                i++;
+                                skip_rest = true;
+                            } else {
+                                fprintf(stderr, "windows-ls: option requires an argument -- 'w'\n");
+                                return -1;
+                            }
                         }
-
-                        term_width = strtol(argv[i + 1], NULL, 10);
-                        j = strlen(argv[i]) - 1;
-                        i++;
                         break;
-
                     case '1':
-                        term_width = 1;
+                        ls_options->term_width = 1;
                         break;
-
                     default:
                         fprintf(stderr, "windows-ls: invalid option -- '%c'\n", argv[i][j]);
                         fprintf(stderr, "Try 'ls --help' for more information.\n");
-                        return 1;
+                        return -1;
                 }
             }
         } else {
-            target_directory = argv[i];
+            ls_options->target_directory = argv[i];
         }
+    }
+    return 0;
+}
+
+int main(const int argc, char *argv[]) {
+    LsOptions ls_options = {};
+    ls_options.term_width = get_terminal_width();
+
+    int res = parse_arguments(argc, argv, &ls_options);
+    if (res > 0) {
+        return 0;
+    }
+    if (res < 0) {
+        return 1;
     }
 
     char cwd[MAX_PATH];
-    if (target_directory != NULL) {
-        strncpy(cwd, target_directory, sizeof(cwd) - 1);
+    if (ls_options.target_directory != NULL) {
+        strncpy(cwd, ls_options.target_directory, sizeof(cwd) - 1);
         cwd[sizeof(cwd) - 1] = '\0';
     } else {
         if (getcwd(cwd, sizeof(cwd)) == NULL) {
@@ -164,11 +199,11 @@ int main(const int argc, char *argv[]) {
     int max_entry_len = 0;
     struct dirent *directory_entry;
     while ((directory_entry = readdir(directory)) != NULL) {
-        if (flag_almost_all) {
+        if (ls_options.almost_all) {
             if (strcmp(directory_entry->d_name, ".") == 0 || strcmp(directory_entry->d_name, "..") == 0) {
                 continue;
             }
-        } else if (!flag_all && directory_entry->d_name[0] == '.') {
+        } else if (!ls_options.all && directory_entry->d_name[0] == '.') {
             continue;
         }
 
@@ -210,9 +245,9 @@ int main(const int argc, char *argv[]) {
     }
     closedir(directory);
 
-    if (!flag_nosort) {
+    if (!ls_options.nosort) {
         qsort(entries, count, sizeof(char *), cmp_entries);
-        if (flag_reverse) {
+        if (ls_options.reverse) {
             for (int i = 0; i < count / 2; i++) {
                 char *tmp = entries[i];
                 entries[i] = entries[count - i - 1];
@@ -222,7 +257,7 @@ int main(const int argc, char *argv[]) {
     }
 
     int col_width = max_entry_len + 2;
-    int num_cols = term_width / col_width;
+    int num_cols = ls_options.term_width / col_width;
     if (num_cols == 0) {
         num_cols = 1;
     }

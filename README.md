@@ -7,10 +7,10 @@ A simple implementation of the Unix `ls` command for Windows.
 - List files in the current directory or a specified directory.
 - `-a`, `--all`: Do not ignore entries starting with `.`.
 - `-A`, `--almost-all`: Do not list implied `.` and `..`.
-- `-f`: Same as `-a -U` (show all and do not sort).
+- `-f`: Same as `-aU` (show all and do not sort).
 - `-r`, `--reverse`: Reverse the order of the sort.
 - `-U`: Do not sort; list entries in the order they appear in the directory.
-- `-w <width>`: Set the output width. `0` means no limit.
+- `-w <width>`, `--width=<width>`: Set the output width. `0` means no limit.
 - `-1`: List one file per line.
 - `--help`: Display the help message.
 - `--version`: Display version information.
@@ -70,11 +70,11 @@ ls [OPTION]... [DIRECTORY]...
 Options:
   -a, --all                  do not ignore entries starting with .
   -A, --almost-all           do not list implied . and ..
-  -f                         same as -a -U
+  -f                         do not sort, enable -aU
   -r, --reverse              reverse order while sorting
   -U                         do not sort; list entries in directory order
-  -w                         set output width. 0 means no limit
+  -w, --width=COLS           set output width to COLS.  0 means no limit
   -1                         list one file per line
-      --help     display this help message and exits
-      --version  output version information and exits
+      --help     display this help and exit
+      --version  output version information and exit
 ```
