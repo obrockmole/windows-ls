@@ -3,6 +3,8 @@
 #include <string.h>
 #include <dirent.h>
 #include <windows.h>
+#include <sys/stat.h>
+#include <time.h>
 
 typedef struct {
     bool all;
@@ -10,6 +12,7 @@ typedef struct {
     bool ignore_backups;
     bool reverse;
     bool nosort;
+    bool long_format;
     int term_width;
     const char *target_directory;
 } LsOptions;
@@ -55,6 +58,45 @@ static void print_columns(char **entries, const int count, const int col_width, 
     }
 }
 
+static void get_mode_string(unsigned short mode, char *str) {
+    strcpy(str, "----------");
+    if (mode & _S_IFDIR) {
+        str[0] = 'd';
+    }
+    if (mode & _S_IREAD) {
+        str[1] = 'r';
+    }
+    if (mode & _S_IWRITE) {
+        str[2] = 'w';
+    }
+    if (mode & _S_IEXEC) {
+        str[3] = 'x';
+    }
+}
+
+static void print_long_format(char **entries, const int count, const char *cwd) {
+    for (int i = 0; i < count; i++) {
+        char full_path[MAX_PATH];
+        snprintf(full_path, sizeof(full_path), "%s\\%s", cwd, entries[i]);
+
+        struct _stat stat;
+        if (_stat(full_path, &stat) == 0) {
+            char mode_string[11];
+            get_mode_string(stat.st_mode, mode_string);
+
+            struct tm *tm_info = localtime(&stat.st_mtime);
+            char time[64] = "Jan 01 00:00";
+            if (tm_info) {
+                strftime(time, sizeof(time), "%b %d %H:%M", tm_info);
+            }
+
+            printf("%s %2d %8d %s %s\n", mode_string, (int)stat.st_nlink, (int)stat.st_size, time, entries[i]);
+        } else {
+            printf("----------   1           0 Jan 01 00:00 %s\n", entries[i]);
+        }
+    }
+}
+
 static void print_help() {
     printf("Usage: ls [OPTION]... [DIRECTORY]...\n");
     printf("\nOptions:\n");
@@ -62,6 +104,7 @@ static void print_help() {
     printf("  -A, --almost-all           do not list implied . and ..\n");
     printf("  -B, --ignore-backups       do not list implied entries ending with ~\n");
     printf("  -f                         do not sort, enable -aU\n");
+    printf("  -l                         use a long listing format\n");
     printf("  -r, --reverse              reverse order while sorting\n");
     printf("  -U                         do not sort; list entries in directory order\n");
     printf("  -w, --width=COLS           set output width to COLS.  0 means no limit\n");
@@ -129,6 +172,9 @@ static int parse_arguments(int argc, char *argv[], LsOptions *ls_options) {
                     case 'f':
                         ls_options->all = true;
                         ls_options->nosort = true;
+                        break;
+                    case 'l':
+                        ls_options->long_format = true;
                         break;
                     case 'r':
                         ls_options->reverse = true;
@@ -274,12 +320,16 @@ int main(const int argc, char *argv[]) {
         }
     }
 
-    int col_width = max_entry_len + 2;
-    int num_cols = ls_options.term_width / col_width;
-    if (num_cols == 0) {
-        num_cols = 1;
+    if (ls_options.long_format) {
+        print_long_format(entries, count, cwd);
+    } else {
+        int col_width = max_entry_len + 2;
+        int num_cols = ls_options.term_width / col_width;
+        if (num_cols == 0) {
+            num_cols = 1;
+        }
+        print_columns(entries, count, col_width, num_cols);
     }
-    print_columns(entries, count, col_width, num_cols);
 
     for (int i = 0; i < count; i++) {
         free(entries[i]);

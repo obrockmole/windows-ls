@@ -9,6 +9,7 @@ A simple implementation of the Unix `ls` command for Windows.
 - `-A`, `--almost-all`: Do not list implied `.` and `..`.
 - `-B`, `--ignore-backups`: Do not list entries ending with `~`.
 - `-f`: Same as `-aU` (show all and do not sort).
+- `-l`: Use a long listing format.
 - `-r`, `--reverse`: Reverse the order of the sort.
 - `-U`: Do not sort; list entries in the order they appear in the directory.
 - `-w <width>`, `--width=<width>`: Set the output width. `0` means no limit.
@@ -73,6 +74,7 @@ Options:
   -A, --almost-all           do not list implied . and ..
   -B, --ignore-backups       do not list implied entries ending with ~
   -f                         do not sort, enable -aU
+  -l                         use a long listing format
   -r, --reverse              reverse order while sorting
   -U                         do not sort; list entries in directory order
   -w, --width=COLS           set output width to COLS.  0 means no limit
