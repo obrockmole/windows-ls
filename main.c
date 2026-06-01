@@ -7,6 +7,7 @@
 typedef struct {
     bool all;
     bool almost_all;
+    bool ignore_backups;
     bool reverse;
     bool nosort;
     int term_width;
@@ -59,6 +60,7 @@ static void print_help() {
     printf("\nOptions:\n");
     printf("  -a, --all                  do not ignore entries starting with .\n");
     printf("  -A, --almost-all           do not list implied . and ..\n");
+    printf("  -B, --ignore-backups       do not list implied entries ending with ~\n");
     printf("  -f                         do not sort, enable -aU\n");
     printf("  -r, --reverse              reverse order while sorting\n");
     printf("  -U                         do not sort; list entries in directory order\n");
@@ -77,30 +79,38 @@ static void print_version() {
 
 static int parse_arguments(int argc, char *argv[], LsOptions *ls_options) {
     for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "--help") == 0) {
-            print_help();
-            return 1;
-        }
+        if (argv[i][0] == '-' && argv[i][1] == '-') {
+            if (strcmp(argv[i], "--help") == 0) {
+                print_help();
+                return 1;
+            }
 
-        if (strcmp(argv[i], "--version") == 0) {
-            print_version();
-            return 1;
-        }
+            if (strcmp(argv[i], "--version") == 0) {
+                print_version();
+                return 1;
+            }
 
-        if (strcmp(argv[i], "--all") == 0) {
-            ls_options->all = true;
-        } else if (strcmp(argv[i], "--almost-all") == 0) {
-            ls_options->almost_all = true;
-        } else if (strcmp(argv[i], "--reverse") == 0) {
-            ls_options->reverse = true;
-        } else if (strncmp(argv[i], "--width=", 8) == 0) {
-            ls_options->term_width = strtol(argv[i] + 8, NULL, 10);
-        } else if (strcmp(argv[i], "--width") == 0) {
-            if (i + 1 < argc) {
-                ls_options->term_width = strtol(argv[i + 1], NULL, 10);
-                i++;
+            if (strcmp(argv[i], "--all") == 0) {
+                ls_options->all = true;
+            } else if (strcmp(argv[i], "--almost-all") == 0) {
+                ls_options->almost_all = true;
+            } else if (strcmp(argv[i], "--ignore-backups") == 0) {
+                ls_options->ignore_backups = true;
+            } else if (strcmp(argv[i], "--reverse") == 0) {
+                ls_options->reverse = true;
+            } else if (strncmp(argv[i], "--width=", 8) == 0) {
+                ls_options->term_width = strtol(argv[i] + 8, NULL, 10);
+            } else if (strcmp(argv[i], "--width") == 0) {
+                if (i + 1 < argc) {
+                    ls_options->term_width = strtol(argv[i + 1], NULL, 10);
+                    i++;
+                } else {
+                    fprintf(stderr, "windows-ls: option '--width' requires an argument\n");
+                    return -1;
+                }
             } else {
-                fprintf(stderr, "windows-ls: option '--width' requires an argument\n");
+                fprintf(stderr, "windows-ls: unrecognized option -- '%s'\n", argv[i]);
+                fprintf(stderr, "Try 'ls --help' for more information.\n");
                 return -1;
             }
         } else if (argv[i][0] == '-') {
@@ -112,6 +122,9 @@ static int parse_arguments(int argc, char *argv[], LsOptions *ls_options) {
                         break;
                     case 'A':
                         ls_options->almost_all = true;
+                        break;
+                    case 'B':
+                        ls_options->ignore_backups = true;
                         break;
                     case 'f':
                         ls_options->all = true;
@@ -205,6 +218,11 @@ int main(const int argc, char *argv[]) {
             }
         } else if (!ls_options.all && directory_entry->d_name[0] == '.') {
             continue;
+        } else if (ls_options.ignore_backups) {
+            size_t name_len = strlen(directory_entry->d_name);
+            if (name_len > 0 && directory_entry->d_name[name_len - 1] == '~') {
+                continue;
+            }
         }
 
         if (count >= capacity) {
